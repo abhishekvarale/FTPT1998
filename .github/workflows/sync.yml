@@ -1,0 +1,42 @@
+name: Sync Repo A to Repo B
+
+on:
+  push:
+    branches:
+      - '**'    # Trigger on any branch push
+  create:
+    branches:
+      - '**'    # Trigger when a new branch is created
+  pull_request:
+    types:
+      - closed  # Trigger when a PR is merged
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo A
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Important: fetch full history, not just latest commit
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "sync-bot@example.com"
+          git config --global user.name "Repo Sync Bot"
+          git config --global push.default simple
+
+      - name: Push to Repo B
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+        run: |
+          git remote add repo_b https://x-access-token:${GITHUB_TOKEN}@github.com/${DESTINATION_REPO}.git
+
+          # Push all branches
+          git push repo_b --all --force
+
+          # Push all tags
+          git push repo_b --tags --force
