@@ -3,13 +3,13 @@ name: Sync Repo A to Repo B
 on:
   push:
     branches:
-      - '**'    # any branch
+      - '**'
   create:
     branches:
-      - '**'    # any new branch
+      - '**'
   pull_request:
     types:
-      - closed  # after PR merge
+      - closed
 
 jobs:
   sync:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Repo A
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # fetch full history, not shallow
+          fetch-depth: 0
 
       - name: Set up Git
         run: |
@@ -29,10 +29,15 @@ jobs:
           git config --global push.default simple
 
       - name: Push to Repo B
+        env:
+          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          DEST_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
           echo "Setting up remote..."
+          echo "Remote Repo: $DEST_REPO"
 
-          REMOTE_URL="https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ secrets.DESTINATION_REPO }}.git"
+          REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${DEST_REPO}.git"
+
           echo "Remote URL will be: $REMOTE_URL"
 
           git remote add repo_b "$REMOTE_URL"
