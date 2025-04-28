@@ -1,0 +1,77 @@
+name: SonarQube + Email + PR + Commit Status
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  sonar-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y zip curl jq mailutils default-jre wget unzip
+        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+        unzip sonar-scanner-cli-5.0.1.3006-linux.zip -d /opt
+        echo "/opt/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+
+    - name: Install Node.js dependencies
+      run: |
+        npm install
+        npm run build || echo "Skipping build..."
+
+    - name: Run SonarQube Scan
+      run: |
+        sonar-scanner \
+          -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
+          -Dsonar.sources=. \
+          -Dsonar.java.binaries=target/classes \
+          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+
+    - name: Fetch Quality Gate Status
+      id: qualitygate
+      run: |
+        REPORT=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECT_KEY }}")
+        STATUS=$(echo $REPORT | jq -r '.projectStatus.status')
+        VULNS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=${{ secrets.SONAR_PROJECT_KEY }}&types=VULNERABILITY" | jq '.total')
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        echo "vulns=$VULNS" >> $GITHUB_OUTPUT
+        echo "report_url=${{ secrets.SONAR_HOST_URL }}/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }}" >> $GITHUB_OUTPUT
+
+    - name: Send Email Report
+      run: |
+        echo "SonarQube Quality Gate: ${{ steps.qualitygate.outputs.status }}
+        Vulnerabilities: ${{ steps.qualitygate.outputs.vulns }}
+        Report: ${{ steps.qualitygate.outputs.report_url }}" | mail -s "SonarQube Report: ${{ steps.qualitygate.outputs.status }}" ${{ secrets.EMAIL_RECIPIENTS }}
+
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      run: |
+        COMMENT="✅ SonarQube Scan\n🔍 Quality Gate: ${{ steps.qualitygate.outputs.status }}\n🛡️ Vulnerabilities: ${{ steps.qualitygate.outputs.vulns }}\n🔗 [View Report](${{ steps.qualitygate.outputs.report_url }})"
+        curl -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+             -H "Content-Type: application/json" \
+             -d "{\"body\": \"$COMMENT\"}" \
+             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
+
+    - name: Update Commit Status
+      run: |
+        STATE=$(if [ "${{ steps.qualitygate.outputs.status }}" == "OK" ]; then echo "success"; else echo "failure"; fi)
+        curl -X POST -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+             -H "Content-Type: application/json" \
+             -d "{
+                  \"state\": \"$STATE\",
+                  \"target_url\": \"${{ steps.qualitygate.outputs.report_url }}\",
+                  \"description\": \"Gate: ${{ steps.qualitygate.outputs.status }}, Vulns: ${{ steps.qualitygate.outputs.vulns }}\",
+                  \"context\": \"SonarQube\"
+                }" \
+             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}"
