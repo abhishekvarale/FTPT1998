@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Repo A
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Important: fetch full history, not just latest commit
+          fetch-depth: 0   # Fetch full history, not just last commit
 
       - name: Set up Git
         run: |
@@ -30,10 +30,10 @@ jobs:
 
       - name: Push to Repo B
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
-          git remote add repo_b https://x-access-token:${GITHUB_TOKEN}@github.com/${DESTINATION_REPO}.git
+          git remote add repo_b https://x-access-token:${PERSONAL_ACCESS_TOKEN}@github.com/${DESTINATION_REPO}.git
 
           # Push all branches
           git push repo_b --all --force
