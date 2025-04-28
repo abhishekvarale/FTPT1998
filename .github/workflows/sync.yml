@@ -3,28 +3,24 @@ name: Sync Repo A to Repo B
 on:
   push:
     branches:
-      - '**'
+      - '**'    # any branch
   create:
     branches:
-      - '**'
+      - '**'    # any new branch
   pull_request:
     types:
-      - closed
+      - closed  # after PR merge
 
 jobs:
   sync:
     if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
-    env:
-      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
-
     steps:
       - name: Checkout Repo A
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # fetch full history, not shallow
 
       - name: Set up Git
         run: |
@@ -35,7 +31,11 @@ jobs:
       - name: Push to Repo B
         run: |
           echo "Setting up remote..."
-          git remote add repo_b https://x-access-token:${PERSONAL_ACCESS_TOKEN}@github.com/${DESTINATION_REPO}.git
+
+          REMOTE_URL="https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ secrets.DESTINATION_REPO }}.git"
+          echo "Remote URL will be: $REMOTE_URL"
+
+          git remote add repo_b "$REMOTE_URL"
 
           echo "Pushing all branches..."
           git push repo_b --all --force
