@@ -33,10 +33,9 @@ jobs:
         run: |
           echo "Starting repository sync..."
 
-          DESTINATION_REPO="abhishekvarale/Reposittory-B"
-          REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${DESTINATION_REPO}.git"
+          REMOTE_URL="https://x-access-token:${TOKEN}@github.com/abhishekvarale/Reposittory-B.git"
 
-          echo "Remote URL configured."
+          echo "Remote URL configured successfully."
 
           git remote add destination "$REMOTE_URL"
 
@@ -46,4 +45,4 @@ jobs:
           echo "Pushing all tags to destination repository..."
           git push destination --tags --force
 
-          echo "Repository sync completed."
+          echo "Repository sync completed successfully."
