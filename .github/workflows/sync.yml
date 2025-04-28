@@ -28,12 +28,15 @@ jobs:
           git config --global user.email "sync-bot@example.com"
 
       - name: Add destination repository and push
+        env:
+          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           echo "Starting repository sync..."
 
-          echo "Setting up remote connection to destination repository."
-          
-          REMOTE_URL="https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ secrets.DESTINATION_REPO }}.git"
+          DESTINATION_REPO="abhishekvarale/Reposittory-B"
+          REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${DESTINATION_REPO}.git"
+
+          echo "Remote URL configured."
 
           git remote add destination "$REMOTE_URL"
 
