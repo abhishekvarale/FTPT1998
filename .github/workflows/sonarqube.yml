@@ -75,4 +75,3 @@ jobs:
                   \"context\": \"SonarQube\"
                 }" \
              "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}"
-
