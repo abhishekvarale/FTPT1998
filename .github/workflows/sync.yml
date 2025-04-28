@@ -24,20 +24,23 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Push Repo A to Repo B
+        env:
+          TOKEN: ${{ secrets.GH_TOKEN }}
+          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
           echo "Starting sync..."
 
-          git remote add destination https://github.com/abhishekvarale/Reposittory-B.git
+          git remote add destination https://github.com/${DESTINATION_REPO}.git
           git fetch --all
-          
+
           echo "Setting credentials..."
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action-bot@example.com"
 
           echo "Pushing all branches to destination repository..."
-          git push https://${{ secrets.GH_TOKEN }}@github.com/abhishekvarale/Reposittory-B.git --all --force
+          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
 
           echo "Pushing all tags to destination repository..."
-          git push https://${{ secrets.GH_TOKEN }}@github.com/abhishekvarale/Reposittory-B.git --tags --force
+          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
 
           echo "Repository sync completed successfully."
