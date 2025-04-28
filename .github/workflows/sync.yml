@@ -29,16 +29,12 @@ jobs:
           git config --global push.default simple
 
       - name: Push to Repo B
-        env:
-          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          DEST_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
           echo "Setting up remote..."
-          echo "Remote Repo: $DEST_REPO"
-
+          
           REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${DEST_REPO}.git"
 
-          echo "Remote URL will be: $REMOTE_URL"
+          echo "Remote URL is: $REMOTE_URL"
 
           git remote add repo_b "$REMOTE_URL"
 
@@ -47,3 +43,6 @@ jobs:
 
           echo "Pushing all tags..."
           git push repo_b --tags --force
+        env:
+          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          DEST_REPO: ${{ secrets.DESTINATION_REPO }}
