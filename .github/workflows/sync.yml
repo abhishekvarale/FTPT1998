@@ -33,11 +33,14 @@ jobs:
         run: |
           echo "Starting repository sync..."
 
+          # Correct Remote URL with token inserted
           REMOTE_URL="https://x-access-token:${TOKEN}@github.com/abhishekvarale/Reposittory-B.git"
 
-          echo "Remote URL configured successfully."
-
+          echo "Setting up destination remote..."
           git remote add destination "$REMOTE_URL"
+
+          echo "Verifying remotes:"
+          git remote -v
 
           echo "Pushing all branches to destination repository..."
           git push destination --all --force
