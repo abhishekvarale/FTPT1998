@@ -22,27 +22,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Git
+      - name: Set up Git User
         run: |
+          git config --global user.name "Sync Bot"
           git config --global user.email "sync-bot@example.com"
-          git config --global user.name "Repo Sync Bot"
-          git config --global push.default simple
 
-      - name: Push to Repo B
-        env:
-          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          DEST_REPO: ${{ secrets.DESTINATION_REPO }}
+      - name: Add destination repository and push
         run: |
-          echo "Setting up remote..."
+          echo "Starting repository sync..."
+
+          echo "Setting up remote connection to destination repository."
           
-          REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${DEST_REPO}.git"
+          REMOTE_URL="https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ secrets.DESTINATION_REPO }}.git"
 
-          echo "Remote URL set (hidden by GitHub logs for security)"
+          git remote add destination "$REMOTE_URL"
 
-          git remote add repo_b "$REMOTE_URL"
+          echo "Pushing all branches to destination repository..."
+          git push destination --all --force
 
-          echo "Pushing all branches..."
-          git push repo_b --all --force
+          echo "Pushing all tags to destination repository..."
+          git push destination --tags --force
 
-          echo "Pushing all tags..."
-          git push repo_b --tags --force
+          echo "Repository sync completed."
