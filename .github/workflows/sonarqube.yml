@@ -1,4 +1,4 @@
-name: SonarQube + Email + PR + Commit Status
+name: SonarQube Analysis with GitHub Status + Commit Comment
 
 on:
   push:
@@ -8,6 +8,11 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: write
+
 jobs:
   sonar-scan:
     runs-on: ubuntu-latest
@@ -16,7 +21,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install Dependencies
+    - name: Install Tools
       run: |
         sudo apt-get update
         sudo apt-get install -y zip curl jq mailutils default-jre wget unzip
@@ -27,7 +32,7 @@ jobs:
     - name: Install Node.js dependencies
       run: |
         npm install
-        npm run build || echo "Skipping build..."
+        npm run build || echo "Skipping build step..."
 
     - name: Run SonarQube Scan
       run: |
@@ -38,7 +43,7 @@ jobs:
           -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
           -Dsonar.token=${{ secrets.SONAR_TOKEN }}
 
-    - name: Fetch Quality Gate Status
+    - name: Fetch SonarQube Quality Gate Status
       id: qualitygate
       run: |
         REPORT=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECT_KEY }}")
@@ -48,25 +53,16 @@ jobs:
         echo "vulns=$VULNS" >> $GITHUB_OUTPUT
         echo "report_url=${{ secrets.SONAR_HOST_URL }}/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }}" >> $GITHUB_OUTPUT
 
-    - name: Send Email Report
+    - name: Send Email Report (optional)
       run: |
         echo "SonarQube Quality Gate: ${{ steps.qualitygate.outputs.status }}
         Vulnerabilities: ${{ steps.qualitygate.outputs.vulns }}
         Report: ${{ steps.qualitygate.outputs.report_url }}" | mail -s "SonarQube Report: ${{ steps.qualitygate.outputs.status }}" ${{ secrets.EMAIL_RECIPIENTS }}
 
-    - name: Comment on PR (if applicable)
-      if: github.event_name == 'pull_request'
-      run: |
-        COMMENT="✅ SonarQube Scan\n🔍 Quality Gate: ${{ steps.qualitygate.outputs.status }}\n🛡️ Vulnerabilities: ${{ steps.qualitygate.outputs.vulns }}\n🔗 [View Report](${{ steps.qualitygate.outputs.report_url }})"
-        curl -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-             -H "Content-Type: application/json" \
-             -d "{\"body\": \"$COMMENT\"}" \
-             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
-
-    - name: Update Commit Status
+    - name: Update Commit Status in GitHub
       run: |
         STATE=$(if [ "${{ steps.qualitygate.outputs.status }}" == "OK" ]; then echo "success"; else echo "failure"; fi)
-        curl -X POST -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+        curl -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
              -H "Content-Type: application/json" \
              -d "{
                   \"state\": \"$STATE\",
@@ -75,3 +71,20 @@ jobs:
                   \"context\": \"SonarQube\"
                 }" \
              "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}"
+
+    - name: Comment on Commit
+      run: |
+        COMMENT="🔍 **SonarQube Scan Result**\n✅ Quality Gate: ${{ steps.qualitygate.outputs.status }}\n🛡️ Vulnerabilities: ${{ steps.qualitygate.outputs.vulns }}\n🔗 [View Report](${{ steps.qualitygate.outputs.report_url }})"
+        curl -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+             -H "Content-Type: application/json" \
+             -d "{\"body\": \"$COMMENT\"}" \
+             "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments"
+
+    - name: Comment on Pull Request (if PR)
+      if: github.event_name == 'pull_request'
+      run: |
+        COMMENT="🔍 **SonarQube PR Scan Summary**\n✅ Quality Gate: ${{ steps.qualitygate.outputs.status }}\n🛡️ Vulnerabilities: ${{ steps.qualitygate.outputs.vulns }}\n🔗 [View Report](${{ steps.qualitygate.outputs.report_url }})"
+        curl -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+             -H "Content-Type: application/json" \
+             -d "{\"body\": \"$COMMENT\"}" \
+             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
