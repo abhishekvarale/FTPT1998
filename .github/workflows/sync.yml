@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Repo A
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Fetch full history, not just last commit
+          fetch-depth: 0   # Important: fetch full history, not just shallow clone
 
       - name: Set up Git
         run: |
@@ -35,8 +35,5 @@ jobs:
         run: |
           git remote add repo_b https://x-access-token:${PERSONAL_ACCESS_TOKEN}@github.com/${DESTINATION_REPO}.git
 
-          # Push all branches
           git push repo_b --all --force
-
-          # Push all tags
           git push repo_b --tags --force
