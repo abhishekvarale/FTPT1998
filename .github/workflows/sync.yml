@@ -1,46 +1,46 @@
-name: Sync Repo A to Repo B
+# name: Sync Repo A to Repo B
 
-on:
-  push:
-    branches:
-      - '**'
-  create:
-    branches:
-      - '**'
-  pull_request:
-    types:
-      - closed
+# on:
+#   push:
+#     branches:
+#       - '**'
+#   create:
+#     branches:
+#       - '**'
+#   pull_request:
+#     types:
+#       - closed
 
-jobs:
-  sync:
-    if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+# jobs:
+#   sync:
+#     if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Repo A
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+#     steps:
+#       - name: Checkout Repo A
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Push Repo A to Repo B
-        env:
-          TOKEN: ${{ secrets.GH_TOKEN }}
-          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
-        run: |
-          echo "Starting sync..."
+#       - name: Push Repo A to Repo B
+#         env:
+#           TOKEN: ${{ secrets.GH_TOKEN }}
+#           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+#         run: |
+#           echo "Starting sync..."
 
-          git remote add destination https://github.com/${DESTINATION_REPO}.git
-          git fetch --all
+#           git remote add destination https://github.com/${DESTINATION_REPO}.git
+#           git fetch --all
 
-          echo "Setting credentials..."
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action-bot@example.com"
+#           echo "Setting credentials..."
+#           git config --global user.name "GitHub Action Bot"
+#           git config --global user.email "action-bot@example.com"
 
-          echo "Pushing all branches to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
+#           echo "Pushing all branches to destination repository..."
+#           git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
 
-          echo "Pushing all tags to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
+#           echo "Pushing all tags to destination repository..."
+#           git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
 
-          echo "Repository sync completed successfully."
+#           echo "Repository sync completed successfully."
