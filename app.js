@@ -45,3 +45,5 @@ function addMessage(text, isSent) {
     messagesDiv.appendChild(messageElem);
     messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll to bottom
 }
+
+
