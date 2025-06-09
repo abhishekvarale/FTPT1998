@@ -2,6 +2,7 @@ const messagesDiv = document.getElementById("messages");
 const messageInput = document.getElementById("message-input");
 const sendBtn = document.getElementById("send-btn");
 
+
 // Encryption key (In a real app, generate keys securely)
 const secretKey = "my-secret-key";
 
