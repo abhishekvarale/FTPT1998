@@ -1,3 +1,4 @@
+// Enables GitHub push-based trigger (required for non-multibranch jobs)
 properties([
   pipelineTriggers([
     [$class: 'GitHubPushTrigger']
