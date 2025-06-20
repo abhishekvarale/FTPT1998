@@ -1,0 +1,46 @@
+name: AI Code Review (Groq)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  groq-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install requests
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run Groq AI Review
+        run: |
+          python scripts/groq_review.py > ai_review.md
+
+      - name: Comment with AI Suggestions
+        run: |
+          TOKEN="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"
+          SHA=$(git rev-parse HEAD)
+          COMMENT=$(cat ai_review.md | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+
+          PR_API="https://api.github.com/repos/${{ github.repository }}/commits/$SHA/pulls"
+          PR_URL=$(curl -s -H "Authorization: Bearer $TOKEN" "$PR_API" | jq -r 'if type=="array" and length > 0 then .[0].issue_url else empty end')
+
+          if [ -n "$PR_URL" ]; then
+            curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"body\": \"$COMMENT\"}" "$PR_URL/comments"
+          else
+            curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"body\": \"$COMMENT\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments"
+          fi
