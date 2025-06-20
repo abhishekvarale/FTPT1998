@@ -1,6 +1,7 @@
 import os
 import requests
 
+
 # Hardcoded Groq API Key (you can replace with environment variable if needed)
 GROQ_API_KEY = "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"
 
