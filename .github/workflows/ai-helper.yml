@@ -1,0 +1,26 @@
+name: AI CI Helper
+
+on:
+  workflow_run:
+    workflows: ["main-ci"]
+    types:
+      - completed
+
+jobs:
+  explain-failure:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Run AI Failure Analyzer
+        run: python scripts/analyze_failure.py
