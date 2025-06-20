@@ -1,32 +1,57 @@
-import os
 import requests
+import logging
 
-def get_error_logs():
-    with open("logs/error.log", "r") as file:
-        return file.read()[:3000]  # Limit input for the model
+# === Config ===
+API_KEY = "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"
+MODEL_NAME = "llama3-70b-8192"
+API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+# === Dummy Log to Send ===
+DUMMY_LOG = """
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.8.1:compile
+Compilation failure:
+src/main/java/com/example/Service.java:[10,8] cannot find symbol
+  symbol:   class List
+  location: class com.example.Service
+"""
+
+# === Logging Setup ===
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def ask_groq(logs):
-    api_key = os.getenv("GROQ_API_KEY")
     headers = {
-        "Authorization": f"Bearer {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}",
+        "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
-    payload = {
-        "model": "mixtral-8x7b-32768",
+    body = {
+        "model": MODEL_NAME,
         "messages": [
-            {"role": "system", "content": "You are a DevOps expert. Explain this CI/CD log failure in simple terms, and suggest fixes."},
+            {"role": "system", "content": "You are a DevOps expert. Explain the CI failure log below, suggest fixes, and tell if retry is safe."},
             {"role": "user", "content": logs}
-        ]
+        ],
+        "temperature": 0.7,
+        "max_tokens": 800
     }
 
-    response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
+    try:
+        logging.info("📤 Sending request to Groq API...")
+        response = requests.post(API_URL, headers=headers, json=body)
+        response.raise_for_status()
+        logging.info("✅ Groq API returned a response.")
+        return response.json()["choices"][0]["message"]["content"]
+    except requests.exceptions.RequestException as e:
+        logging.error(f"❌ Groq API request failed: {e}")
+        if e.response is not None:
+            logging.error(f"Response Content: {e.response.text}")
+        return "Failed to fetch explanation from AI."
 
 def main():
-    logs = get_error_logs()
-    explanation = ask_groq(logs)
-    print("=== CI Failure Explanation ===\n")
+    logging.info("🚀 CI Helper Script Started...")
+    explanation = ask_groq(DUMMY_LOG)
+    print("\n🧠 === CI/CD Failure Explanation ===\n")
     print(explanation)
 
 if __name__ == "__main__":
