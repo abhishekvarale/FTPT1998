@@ -18,7 +18,10 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install requests
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Run Groq AI Security Audit
         id: audit
@@ -35,19 +38,19 @@ jobs:
           SHA=$(git rev-parse HEAD)
           COMMENT=$(echo "$AI_COMMENT" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # Try comment on PR
-          PR_URL=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/commits/$SHA/pulls" | jq -r '.[0].issue_url')
+          PR_API="https://api.github.com/repos/${{ github.repository }}/commits/$SHA/pulls"
+          PR_URL=$(curl -s -H "Authorization: Bearer $TOKEN" "$PR_API" | jq -r 'if type=="array" and length > 0 then .[0].issue_url else empty end')
 
-          if [ "$PR_URL" != "null" ]; then
+          if [ -n "$PR_URL" ]; then
             echo "📝 Commenting on PR..."
             curl -s -X POST -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{\"body\": \"$COMMENT\"}" "$PR_URL/comments"
+              -d "{\"body\": \"$COMMENT\"}" \
+              "$PR_URL/comments"
           else
             echo "📝 Commenting on commit..."
             curl -s -X POST -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"body\": \"$COMMENT\"}" \
-              https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments
+              "https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments"
           fi
