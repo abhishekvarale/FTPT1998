@@ -1,19 +1,16 @@
-name: AI Groq Security Review
+name: AI Groq Repo Review
 
 on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, reopened, synchronize]
 
 jobs:
   groq-review:
     runs-on: ubuntu-latest
-    env:
-      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repo
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -21,33 +18,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install requests
+        run: pip install requests
 
       - name: Run Groq AI Review
-        id: review
         run: |
-          python3 scripts/groq_review.py > ai_review.md || true
-
-      - name: Post with AI Suggestions
-        if: always()
-        run: |
-          REVIEW=$(<ai_review.md)
-          SHA=$(git rev-parse HEAD)
-          PR_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" \
-            | jq -r 'if type=="array" and length>0 then .[0].issue_url else "" end')
-
-          BODY=$(printf '%s\n' "$REVIEW" | sed 's/"/\\"/g' | sed 's/^/▶ /')
-
-          if [ -n "$PR_URL" ]; then
-            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"body\":\"$BODY\"}" \
-              "$PR_URL/comments"
-          else
-            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"body\":\"$BODY\"}" \
-              "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$SHA/comments"
-          fi
+          python3 scripts/groq_review.py || true
