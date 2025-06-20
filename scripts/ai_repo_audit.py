@@ -1,30 +1,27 @@
 import os
 import requests
-import logging
 
 API_KEY = "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"
 MODEL = "llama3-70b-8192"
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-ALLOWED_EXT = (".js", ".ts", ".py", ".java", ".yml", ".yaml", ".env", ".json", ".sh")
-
-def collect_repo_content():
-    contents = []
+def collect_code_files():
+    included_exts = (".js", ".ts", ".py", ".java", ".sh", ".env", ".yml", ".yaml", ".json")
+    collected = []
     for root, _, files in os.walk("."):
-        if ".git" in root or "node_modules" in root:
+        if any(ignored in root for ignored in [".git", "node_modules", "__pycache__"]):
             continue
         for file in files:
-            if file.endswith(ALLOWED_EXT):
+            if file.endswith(included_exts):
+                filepath = os.path.join(root, file)
                 try:
-                    with open(os.path.join(root, file), "r", encoding="utf-8", errors="ignore") as f:
-                        data = f.read()
-                        if len(data.strip()) > 0:
-                            contents.append(f"# File: {os.path.join(root, file)}\n{data[:2000]}")
-                except Exception as e:
-                    logging.warning(f"Could not read {file}: {e}")
-    return "\n\n".join(contents)[:15000]  # keep within token limit
+                    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read().strip()
+                        if content:
+                            collected.append(f"# File: {filepath}\n{content[:1000]}")
+                except Exception:
+                    continue
+    return "\n\n".join(collected)[:15000]  # keep within token budget
 
 def ask_groq(prompt):
     headers = {
@@ -34,42 +31,32 @@ def ask_groq(prompt):
     payload = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": "You are a cybersecurity and code quality expert. Reply in clear markdown."},
+            {"role": "system", "content": "You are a senior DevSecOps engineer and cybersecurity auditor."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.7,
-        "max_tokens": 2000
+        "temperature": 0.5
     }
-
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        logging.error(f"Groq API failed: {e}")
-        return "Failed to fetch AI response."
+    response = requests.post(API_URL, headers=headers, json=payload)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
 
 def main():
-    logging.info("🔍 Collecting repo files...")
-    repo_data = collect_repo_content()
+    files_data = collect_code_files()
 
-    logging.info("🤖 Sending repo content to Groq...")
     prompt = f"""
-Analyze the following codebase and configuration files for:
-1. Secret leaks (keys, tokens, passwords)
-2. Misconfigurations or hardcoded credentials
-3. General security risks or poor patterns
-4. Suggestions to improve code quality or structure
+You are an expert code security auditor.
 
-Respond in markdown format with:
-- 🔐 Detected Secrets
-- ⚠️ Security Issues
-- 💡 Code Enhancements
-- ✅ Suggested Fixes
----
+Go through the following repository contents and:
+- 🔐 Detect any secrets like tokens, passwords, or API keys
+- ⚠️ Find insecure configurations (e.g., exposed `.env`, open S3 buckets, missing auth)
+- 💡 Suggest meaningful improvements in code quality and security
+- ❌ Highlight critical risks
+- ✅ Format results in markdown using appropriate emojis
 
-{repo_data}
+Here is the code snapshot:
+{files_data}
     """
+
     result = ask_groq(prompt)
     print(result)
 
