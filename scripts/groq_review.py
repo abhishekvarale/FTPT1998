@@ -1,57 +1,43 @@
-# import os
-# import requests
+import os
+import requests
 
+# Walk through repo and gather code content
+def gather_code(base_path='.'):
+    collected = []
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            if file.endswith(('.py', '.js', '.java', '.yml', '.yaml', '.ts', '.go', '.html', '.css')):
+                path = os.path.join(root, file)
+                if path.startswith("./.git") or "node_modules" in path or path.startswith("./.github"):
+                    continue
+                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    collected.append(f"\n### File: {path}\n```\n{content}\n```")
+    return "\n".join(collected)[:12000]  # Keep input within safe token limit
 
-# API_KEY = "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"
-# MODEL = "llama3-70b-8192"
+def ask_groq(code_snippets):
+    headers = {
+        "Authorization": "Bearer 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",
+        "Content-Type": "application/json"
+    }
 
-# def collect_code():
-#     collected = []
-#     for root, _, files in os.walk("."):
-#         if any(ignored in root for ignored in [".git", "node_modules", "__pycache__"]):
-#             continue
-#         for file in files:
-#             if file.endswith((".js", ".ts", ".py", ".java", ".go", ".yml", ".yaml", ".sh", ".env", ".html", ".css", ".json")):
-#                 path = os.path.join(root, file)
-#                 try:
-#                     with open(path, "r", encoding="utf-8", errors="ignore") as f:
-#                         content = f.read().strip()
-#                         if content:
-#                             collected.append(f"# {path}\n{content[:1000]}")
-#                 except:
-#                     continue
-#     return "\n\n".join(collected)[:15000]
+    messages = [
+        {"role": "system", "content": "You're a code reviewer and security expert. Review the following code for security risks, hardcoded secrets, bad practices, and suggest improvements with explanations."},
+        {"role": "user", "content": code_snippets}
+    ]
 
-# def ask_groq(prompt):
-#     headers = {
-#         "Authorization": f"Bearer {API_KEY}",
-#         "Content-Type": "application/json"
-#     }
-#     data = {
-#         "model": MODEL,
-#         "messages": [
-#             {"role": "system", "content": "You are an expert DevSecOps and code quality reviewer."},
-#             {"role": "user", "content": prompt}
-#         ]
-#     }
-#     r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data)
-#     r.raise_for_status()
-#     return r.json()["choices"][0]["message"]["content"]
+    payload = {
+        "model": "llama3-8b-8192",
+        "messages": messages
+    }
 
-# if __name__ == "__main__":
-#     code = collect_code()
-#     prompt = f"""
-# Review the following codebase for:
-# - 🔐 security issues
-# - ❌ secrets exposed
-# - 💩 bad indentation or formatting
-# - ⚠️ dangerous configs or open .env values
-# - 💡 code improvement suggestions
+    response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
+    response.raise_for_status()
+    return response.json()['choices'][0]['message']['content']
 
-# Keep the response clear. Start your response with a header: `🧠 AI Code Review Summary`
-
-# Code:
-# {code}
-# """
-#     result = ask_groq(prompt)
-#     print(result)
+if __name__ == "__main__":
+    print("🔍 Collecting repo code for Groq analysis...")
+    snippet = gather_code()
+    print("🧠 Asking Groq for code review...")
+    result = ask_groq(snippet)
+    print(result)
