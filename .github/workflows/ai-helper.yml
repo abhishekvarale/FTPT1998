@@ -2,7 +2,7 @@ name: AI CI Helper
 
 on:
   workflow_run:
-    workflows: ["main-ci"]
+    workflows: ["sync", "sonarqube"]
     types:
       - completed
 
