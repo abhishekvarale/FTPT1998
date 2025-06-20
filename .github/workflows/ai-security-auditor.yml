@@ -1,0 +1,53 @@
+name: AI Security Auditor
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run Groq AI Security Audit
+        id: audit
+        run: |
+          OUTPUT=$(python scripts/ai_repo_audit.py)
+          echo "$OUTPUT"
+          echo "AI_COMMENT<<EOF" >> $GITHUB_ENV
+          echo "$OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Comment on Commit or PR
+        run: |
+          TOKEN="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"
+          SHA=$(git rev-parse HEAD)
+          COMMENT=$(echo "$AI_COMMENT" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+
+          # Try comment on PR
+          PR_URL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/$SHA/pulls" | jq -r '.[0].issue_url')
+
+          if [ "$PR_URL" != "null" ]; then
+            echo "📝 Commenting on PR..."
+            curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"body\": \"$COMMENT\"}" "$PR_URL/comments"
+          else
+            echo "📝 Commenting on commit..."
+            curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"body\": \"$COMMENT\"}" \
+              https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments
+          fi
