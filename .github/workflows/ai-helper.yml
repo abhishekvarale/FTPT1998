@@ -2,7 +2,7 @@ name: AI CI Copilot
 
 on:
   workflow_run:
-    workflows: ["sync"]  # Your main CI workflow
+    workflows: ["sync"]
     types:
       - completed
 
@@ -35,24 +35,22 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Comment on Commit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA=${{ github.event.workflow_run.head_sha }}
+          TOKEN="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"
           COMMENT=$(echo "$AI_COMMENT" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
 
           curl -s -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"body\": \"$COMMENT\"}" \
             https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments
 
       - name: Comment on Pull Request (if exists)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA=${{ github.event.workflow_run.head_sha }}
           REPO=${{ github.repository }}
+          TOKEN="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"
 
           PR_NUMBER=$(gh pr list --repo "$REPO" --state open --json number,commits --jq ".[] | select(.commits[].oid==\"$SHA\") | .number")
 
@@ -64,7 +62,7 @@ jobs:
           COMMENT=$(echo "$AI_COMMENT" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
 
           curl -s -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"body\": \"$COMMENT\"}" \
             https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments
