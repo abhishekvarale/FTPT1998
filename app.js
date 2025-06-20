@@ -5,7 +5,6 @@ const sendBtn = document.getElementById("send-btn");
 // Encryption key (In a real app, generate keys securely)
 const secretKey = "my-secret-key";
 
-
 // Initialize WebSocket connection
 const ws = new WebSocket("ws://localhost:3000");
 
