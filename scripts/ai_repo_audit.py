@@ -1,6 +1,7 @@
 import os
 import requests
 
+
 API_KEY = "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"
 MODEL = "llama3-70b-8192"
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
