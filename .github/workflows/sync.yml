@@ -1,47 +1,45 @@
-name: Sync Repo A to Repo B
-
+name: AI CI Copilot
 
 on:
-  push:
-    branches:
-      - '**'
-  create:
-    branches:
-      - '**'
-  pull_request:
+  workflow_run:
+    workflows: ["sync"]
     types:
-      - closed
+      - completed
 
 jobs:
-  sync:
-    if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
+  explain-failure:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repo A
-        uses: actions/checkout@v4
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          python-version: '3.11'
 
-      - name: Push Repo A to Repo B
-        env:
-          TOKEN: ${{ secrets.GH_TOKEN }}
-          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run AI CI Copilot
+        id: aioutput
         run: |
-          echo "Starting sync..."
+          echo "Running AI CI Copilot..."
+          OUTPUT=$(python scripts/analyze_failure.py)
+          echo "$OUTPUT"
+          echo "AI_COMMENT<<EOF" >> $GITHUB_ENV
+          echo "$OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
-          git remote add destination https://github.com/${DESTINATION_REPO}.git
-          git fetch --all
-
-          echo "Setting credentials..."
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action-bot@example.com"
-
-          echo "Pushing all branches to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
-
-          echo "Pushing all tags to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
-
-          echo "Repository sync completed successfully."
+      - name: Comment on commit with AI output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA=${{ github.event.workflow_run.head_sha }}
+          COMMENT=$(echo "$AI_COMMENT" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\": \"$COMMENT\"}" \
+            https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments
