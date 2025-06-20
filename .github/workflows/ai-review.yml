@@ -1,12 +1,14 @@
-name: AI Code Review (Groq)
+name: AI Groq Repo Review
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   groq-review:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -17,29 +19,28 @@ jobs:
           python-version: '3.11'
 
       - name: Install deps
-        run: |
-          pip install requests
-          sudo apt-get update && sudo apt-get install -y jq
+        run: pip install requests
 
       - name: Run Groq AI Review
-        run: |
-          python scripts/groq_review.py > ai_review.md
+        run: python scripts/groq_review.py > ai_review.md
 
       - name: Comment with AI Suggestions
         run: |
-          TOKEN="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"
+          TOKEN=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
           SHA=$(git rev-parse HEAD)
           COMMENT=$(cat ai_review.md | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
 
           PR_API="https://api.github.com/repos/${{ github.repository }}/commits/$SHA/pulls"
-          PR_URL=$(curl -s -H "Authorization: Bearer $TOKEN" "$PR_API" | jq -r 'if type=="array" and length > 0 then .[0].issue_url else empty end')
+          PR_URL=$(curl -s -H "Authorization: token $TOKEN" "$PR_API" | jq -r 'if type=="array" and length > 0 then .[0].issue_url else empty end')
 
           if [ -n "$PR_URL" ]; then
-            curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+            echo "📝 Commenting on PR..."
+            curl -s -X POST -H "Authorization: token $TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"body\": \"$COMMENT\"}" "$PR_URL/comments"
           else
-            curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+            echo "📝 Commenting on commit..."
+            curl -s -X POST -H "Authorization: token $TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"body\": \"$COMMENT\"}" \
               "https://api.github.com/repos/${{ github.repository }}/commits/$SHA/comments"
