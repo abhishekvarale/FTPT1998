@@ -24,19 +24,15 @@ jobs:
           sudo apt-get install -y jq
 
       - name: Run Groq AI Security Audit
-        id: audit
         run: |
-          OUTPUT=$(python scripts/ai_repo_audit.py)
-          echo "$OUTPUT"
-          echo "AI_COMMENT<<EOF" >> $GITHUB_ENV
-          echo "$OUTPUT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          python scripts/ai_repo_audit.py > ai_audit_output.md
 
       - name: Comment on Commit or PR
         run: |
           TOKEN="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"
           SHA=$(git rev-parse HEAD)
-          COMMENT=$(echo "$AI_COMMENT" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+
+          COMMENT=$(cat ai_audit_output.md | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
 
           PR_API="https://api.github.com/repos/${{ github.repository }}/commits/$SHA/pulls"
           PR_URL=$(curl -s -H "Authorization: Bearer $TOKEN" "$PR_API" | jq -r 'if type=="array" and length > 0 then .[0].issue_url else empty end')
