@@ -38,8 +38,8 @@ jobs:
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action-bot@example.com"
 
-          echo "Pushing all branches to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
+          # echo "Pushing all branches to destination repository..."
+          # git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
 
           echo "Pushing all tags to destination repository..."
           git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
