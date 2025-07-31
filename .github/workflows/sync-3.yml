@@ -2,20 +2,14 @@ name: Mirror Repo A to Repo B
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - '**'
+    branches: ["**"]
+    tags: ["**"]
   create:
-    branches:
-      - '**'
-    tags:
-      - '**'
+    branches: ["**"]
+    tags: ["**"]
   delete:
-    branches:
-      - '**'
-    tags:
-      - '**'
+    branches: ["**"]
+    tags: ["**"]
   pull_request:
     types: [opened, reopened, synchronize, closed]
   workflow_dispatch:
@@ -28,21 +22,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone and filter-push to Repo B
+      - name: Clone and push only clean refs to Repo B
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
-          echo "Cloning Repo A..."
+          echo "🔁 Cloning Repo A as mirror..."
           git clone --mirror https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} repo-mirror
           cd repo-mirror
 
-          # Remove GitHub's internal refs like pull/*
-          echo "Cleaning protected refs (pull/*)..."
-          git for-each-ref --format='%(refname)' refs/pull/ | xargs -r -n 1 git update-ref -d
+          echo "🧹 Cleaning refs/pull/* (protected PR refs)..."
+          # Delete from ref database
+          git for-each-ref --format='%(refname)' refs/pull/ | xargs -r -n 1 git update-ref -d || true
+          # Delete from filesystem
+          rm -rf refs/pull/
 
-          echo "Pushing to Repo B..."
+          echo "🚀 Pushing clean mirror to Repo B..."
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
           git push --mirror --force
 
-          echo "✅ Successfully mirrored Repo A to Repo B."
+          echo "✅ Repo A successfully mirrored to Repo B without PR refs."
