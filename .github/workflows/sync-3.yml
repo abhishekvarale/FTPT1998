@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone and push only clean refs to Repo B
+      - name: Mirror Repo A to Repo B (clean push)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
@@ -31,14 +31,16 @@ jobs:
           git clone --mirror https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} repo-mirror
           cd repo-mirror
 
-          echo "🧹 Cleaning refs/pull/* (protected PR refs)..."
-          # Delete from ref database
+          echo "🧹 Cleaning protected refs like refs/pull/*..."
           git for-each-ref --format='%(refname)' refs/pull/ | xargs -r -n 1 git update-ref -d || true
-          # Delete from filesystem
           rm -rf refs/pull/
 
-          echo "🚀 Pushing clean mirror to Repo B..."
+          echo "🔗 Setting new remote (Repo B)..."
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
-          git push --mirror --force
+
+          echo "🚀 Force pushing each ref (branches & tags)..."
+          for ref in $(git for-each-ref --format='%(refname)'); do
+            git push --force origin "$ref":"$ref" || echo "⚠️ Skipped $ref due to push conflict"
+          done
 
           echo "✅ Repo A successfully mirrored to Repo B without PR refs."
