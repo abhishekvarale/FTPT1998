@@ -1,47 +1,40 @@
-name: Sync Repo A to Repo B
-
+name: Mirror Repo A to Repo B
 
 on:
   push:
     branches:
       - '**'
+    tags:
+      - '**'
   create:
     branches:
       - '**'
+    tags:
+      - '**'
   pull_request:
-    types:
-      - closed
+    types: [closed]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
 
 jobs:
-  sync:
+  mirror:
     if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo A
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: Push Repo A to Repo B
+      - name: Mirror clone and push
         env:
-          TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
-          echo "Starting sync..."
+          echo "Cloning Repo A as mirror..."
+          git clone --mirror https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} repo-mirror
 
-          git remote add destination https://github.com/${DESTINATION_REPO}.git
-          git fetch --all
+          cd repo-mirror
 
-          echo "Setting credentials..."
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action-bot@example.com"
+          echo "Pushing mirror to Repo B..."
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
+          git push --mirror --force
 
-          echo "Pushing all branches to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
-
-          echo "Pushing all tags to destination repository..."
-          git push https://${TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
-
-          echo "Repository sync completed successfully."
+          echo "✅ Mirror sync complete."
