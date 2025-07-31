@@ -52,61 +52,61 @@
 #           echo "Pushing all tags to destination repo..."
 #           git push https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
 
-name: Sync to Repo B
+# name: Sync to Repo B
 
-on:
-  push:
-    branches:
-      - '**'
-    tags:
-      - '**'
-  create:
-    branches:
-      - '**'
-    tags:
-      - '**'
-  pull_request:
-    types: [closed]
-  workflow_dispatch:  # Manual run option
-  schedule:
-    - cron: '0 */6 * * *'  # Optional: every 6 hours
+# on:
+#   push:
+#     branches:
+#       - '**'
+#     tags:
+#       - '**'
+#   create:
+#     branches:
+#       - '**'
+#     tags:
+#       - '**'
+#   pull_request:
+#     types: [closed]
+#   workflow_dispatch:  # Manual run option
+#   schedule:
+#     - cron: '0 */6 * * *'  # Optional: every 6 hours
 
-jobs:
-  sync:
-    if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+# jobs:
+#   sync:
+#     if: github.event.pull_request.merged == true || github.event_name != 'pull_request'
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Repo A
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
-          fetch-tags: true  # Important for syncing tags
+#     steps:
+#       - name: Checkout Repo A
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           token: ${{ secrets.GH_TOKEN }}
+#           fetch-tags: true  # Important for syncing tags
 
-      - name: Fetch all branches and tags
-        run: |
-          git fetch --all
-          git fetch --tags
+#       - name: Fetch all branches and tags
+#         run: |
+#           git fetch --all
+#           git fetch --tags
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action-bot@example.com"
+#       - name: Configure Git
+#         run: |
+#           git config --global user.name "GitHub Action Bot"
+#           git config --global user.email "action-bot@example.com"
 
-      - name: Add destination remote and push
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
-        run: |
-          echo "Adding destination remote..."
-          git remote add destination https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
+#       - name: Add destination remote and push
+#         env:
+#           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+#           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+#         run: |
+#           echo "Adding destination remote..."
+#           git remote add destination https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
 
-          echo "Pushing all branches to Repo B..."
-          git push destination --all --force
+#           echo "Pushing all branches to Repo B..."
+#           git push destination --all --force
 
-          echo "Pushing all tags to Repo B..."
-          git push destination --tags --force
+#           echo "Pushing all tags to Repo B..."
+#           git push destination --tags --force
 
-          echo "✅ Sync completed successfully."
+#           echo "✅ Sync completed successfully."
 
