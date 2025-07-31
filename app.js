@@ -6,6 +6,7 @@ const sendBtn = document.getElementById("send-btn");
 const secretKey = "my-secret-key";
 
 
+
 // Initialize WebSocket connection
 const ws = new WebSocket("ws://localhost:3000");
 
