@@ -12,23 +12,18 @@ on:
     tags: ["**"]
   pull_request:
     types: [opened, reopened, synchronize, closed]
-  workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   mirror:
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
-      - name: Mirror Repo A to Repo B (clean push)
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+      - name: 🔁 Clone Repo A as mirror
         run: |
-          echo "🔁 Cloning Repo A as mirror..."
-          git clone --mirror https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} repo-mirror
+          git clone --mirror https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }} repo-mirror
           cd repo-mirror
 
           echo "🧹 Cleaning protected refs like refs/pull/*..."
@@ -36,11 +31,12 @@ jobs:
           rm -rf refs/pull/
 
           echo "🔗 Setting new remote (Repo B)..."
-          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ secrets.DESTINATION_REPO }}.git
 
-          echo "🚀 Force pushing each ref (branches & tags)..."
-          for ref in $(git for-each-ref --format='%(refname)'); do
-            git push --force origin "$ref":"$ref" || echo "⚠️ Skipped $ref due to push conflict"
-          done
+          echo "🚀 Force pushing all branches..."
+          git push --prune origin '+refs/heads/*:refs/heads/*'
 
-          echo "✅ Repo A successfully mirrored to Repo B without PR refs."
+          echo "🏷️ Force pushing all tags..."
+          git push --prune origin '+refs/tags/*:refs/tags/*'
+
+          echo "✅ Mirror complete!"
