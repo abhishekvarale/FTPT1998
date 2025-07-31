@@ -29,7 +29,7 @@ jobs:
           DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
         run: |
           echo "Starting sync..."
-          git remote add destination "https://github.com/${DESTINATION_REPO}.git"
+          git remote add destination "https://github.com/abhishekvarale/${DESTINATION_REPO}.git"
           git fetch --all
           echo "Setting credentials..."
           git config --global user.name "GitHub Action Bot"
