@@ -33,10 +33,7 @@ jobs:
           echo "🔗 Setting new remote (Repo B)..."
           git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ secrets.DESTINATION_REPO }}.git
 
-          echo "🚀 Force pushing all branches..."
-          git push --prune origin '+refs/heads/*:refs/heads/*'
-
-          echo "🏷️ Force pushing all tags..."
-          git push --prune origin '+refs/tags/*:refs/tags/*'
+          echo "🚀 Pushing mirror to Repo B..."
+          git push --mirror
 
           echo "✅ Mirror complete!"
