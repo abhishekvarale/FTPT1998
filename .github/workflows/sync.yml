@@ -1,4 +1,4 @@
-name: Sync Repo A to Repo B
+name: Sync to Repo B
 
 on:
   push:
@@ -8,8 +8,7 @@ on:
     branches:
       - '**'
   pull_request:
-    types:
-      - closed
+    types: [closed]
 
 jobs:
   sync:
@@ -23,19 +22,31 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Push Repo A to Repo B
-        env:
-          TOKEN: ${{ secrets.GH_TOKEN }}
-          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+      - name: Configure Git
         run: |
-          echo "Starting sync..."
-          git remote add destination "https://github.com/abhishekvarale/${DESTINATION_REPO}.git"
-          git fetch --all
-          echo "Setting credentials..."
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action-bot@example.com"
-          echo "Pushing all branches to destination repository..."
-          git push "https://${TOKEN}@github.com/${DESTINATION_REPO}.git" --all --force
-          echo "Pushing all tags to destination repository..."
-          git push "https://${TOKEN}@github.com/${DESTINATION_REPO}.git" --tags --force
-          echo "Repository sync completed successfully."
+
+      - name: Add destination repo as remote
+        env:
+          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git remote add destination https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
+          git fetch --all
+
+      - name: Push all branches
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+        run: |
+          echo "Pushing all branches to destination repo..."
+          git push https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git --all --force
+
+      - name: Push all tags
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+        run: |
+          echo "Pushing all tags to destination repo..."
+          git push https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git --tags --force
