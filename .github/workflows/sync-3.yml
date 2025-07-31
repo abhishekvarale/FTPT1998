@@ -1,0 +1,48 @@
+name: Mirror Repo A to Repo B
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  create:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  delete:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  mirror:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone and filter-push to Repo B
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          DESTINATION_REPO: ${{ secrets.DESTINATION_REPO }}
+        run: |
+          echo "Cloning Repo A..."
+          git clone --mirror https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} repo-mirror
+          cd repo-mirror
+
+          # Remove GitHub's internal refs like pull/*
+          echo "Cleaning protected refs (pull/*)..."
+          git for-each-ref --format='%(refname)' refs/pull/ | xargs -r -n 1 git update-ref -d
+
+          echo "Pushing to Repo B..."
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${DESTINATION_REPO}.git
+          git push --mirror --force
+
+          echo "✅ Successfully mirrored Repo A to Repo B."
