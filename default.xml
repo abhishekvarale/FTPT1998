@@ -1,0 +1,15 @@
+<manifest>
+  <remote name="origin" fetch="https://github.com/abhishekvarale/" />
+
+  <!-- Default branch for repos (can override in project) -->
+  <default revision="main" remote="origin" sync-j="2" />
+
+  <!-- Main repo itself -->
+  <project name="FTPT1998" path="." revision="main" />
+
+  <!-- Repo B in CLONE AREA -->
+  <project name="test_python_project4054" path="CLONE AREA" revision="main" />
+
+  <!-- Repo C in CLONE AREA 2 -->
+  <project name="django-notes-app-main" path="CLONE AREA 2" revision="main" />
+</manifest>
